@@ -1,4 +1,18 @@
 const express = require('express');
+
+const OK = 200;
+const CREATED = 201;
+const ERROR_CODE = 400;
+const NOT_FOUND = 404;
+const SERVER_ERROR = 500;
+module.exports = {
+  OK,
+  CREATED,
+  ERROR_CODE,
+  NOT_FOUND,
+  SERVER_ERROR,
+};
+
 const mongoose = require('mongoose');
 
 const { PORT = 3000 } = process.env;
@@ -25,13 +39,13 @@ app.use('/', require('./routes/users'));
 app.use('/', require('./routes/cards'));
 
 app.use('/', (req, res) => {
-  res.status(404).json({ message: 'Страница не найдена' });
+  res.status(NOT_FOUND).json({ message: 'Страница не найдена' });
 });
 
 module.exports.createCard = (req, res) => {
   console.log(req.user._id);
 
-  res.status(200).send({ message: 'ответ получен' });
+  res.status(OK).send({ message: 'ответ получен' });
 };
 
 app.listen(PORT);

@@ -1,10 +1,8 @@
 const User = require('../models/user');
 
-const OK = 200;
-const CREATED = 201;
-const ERROR_CODE = 400;
-const NOT_FOUND = 404;
-const SERVER_ERROR = 500;
+const {
+  OK, CREATED, ERROR_CODE, NOT_FOUND, SERVER_ERROR,
+} = require('../app');
 
 module.exports.getUsers = async (req, res) => {
   try {

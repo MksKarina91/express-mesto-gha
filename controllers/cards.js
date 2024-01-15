@@ -1,11 +1,8 @@
 const mongoose = require('mongoose');
 const Card = require('../models/card');
-
-const OK = 200;
-const CREATED = 201;
-const ERROR_CODE = 400;
-const NOT_FOUND = 404;
-const SERVER_ERROR = 500;
+const {
+  OK, CREATED, ERROR_CODE, NOT_FOUND, SERVER_ERROR,
+} = require('../app');
 
 module.exports.getCards = async (req, res) => {
   try {
@@ -39,10 +36,6 @@ module.exports.createCard = async (req, res) => {
 module.exports.deleteCardById = async (req, res) => {
   const { cardId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(cardId)) {
-    return res.status(ERROR_CODE).json({ message: 'Некорректный ID карточки' });
-  }
-
   try {
     const deletedCard = await Card.findByIdAndDelete(cardId);
     if (!deletedCard) {
@@ -50,6 +43,9 @@ module.exports.deleteCardById = async (req, res) => {
     }
     return res.status(OK).json({ message: 'Карточка успешно удалена' });
   } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(ERROR_CODE).json({ message: 'Некорректный ID карточки' });
+    }
     return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
   }
 };
