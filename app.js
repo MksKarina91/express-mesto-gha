@@ -3,7 +3,7 @@ const { errors } = require('celebrate');
 const mongoose = require('mongoose');
 const auth = require('./middlewares/auth');
 const { login, createUser } = require('./controllers/users');
-const { validateUser } = require('./validate/validate');
+const { validationUserId } = require('./validate/validate');
 
 const NOT_FOUND = 404;
 const { PORT = 3000 } = process.env;
@@ -18,8 +18,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use(express.json());
 
-app.post('/signin', validateUser, login);
-app.post('/signup', validateUser, createUser);
+app.post('/signin', validationUserId, login);
+app.post('/signup', validationUserId, createUser);
 
 app.use(auth);
 
