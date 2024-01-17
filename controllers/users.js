@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
+const NotFoundError = require('../errors/NotFoundError');
 
 const OK = 200;
 const ERROR_CODE = 400;
@@ -105,6 +106,24 @@ module.exports.updateAvatar = async (req, res) => {
       return res.status(ERROR_CODE).json({ message: 'Ошибка валидации данных пользователя' });
     }
     return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
+  }
+};
+
+module.exports.getCurrentUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      throw new NotFoundError('Пользователь не найден');
+    }
+
+    res.status(OK).send(user);
+  } catch (err) {
+    if (err.name === 'CastError') {
+      next(new BadRequestError('Переданы некорректные данные'));
+    } else {
+      next(err);
+    }
   }
 };
 

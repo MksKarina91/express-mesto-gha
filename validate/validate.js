@@ -1,6 +1,8 @@
 const { celebrate, Joi, CelebrateError } = require('celebrate');
 const isUrl = require('validator/lib/isURL');
 
+const REGEX = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$/;
+
 const validateURL = (value) => {
   if (!isUrl(value, { require_protocol: true })) {
     throw new CelebrateError('Некорректный адрес URL');
@@ -17,7 +19,10 @@ const validationID = (id) => {
 
 module.exports.validationLogin = celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required().email(),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().regex(REGEX),
+    email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
 });
@@ -26,8 +31,8 @@ module.exports.validationCreateUser = celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string().custom(validateURL),
-    email: Joi.string().required().email(),
+    avatar: Joi.string().regex(REGEX),
+    email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
 });
