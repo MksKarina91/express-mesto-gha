@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
 const Card = require('../models/card');
-const {
-  OK, CREATED, ERROR_CODE, NOT_FOUND, SERVER_ERROR,
-} = require('../app');
+
+const OK = 200;
+const CREATED = 201;
+const ERROR_CODE = 400;
+const NOT_FOUND = 404;
+const SERVER_ERROR = 500;
 
 module.exports.getCards = async (req, res) => {
   try {
@@ -26,7 +29,7 @@ module.exports.createCard = async (req, res) => {
     res.status(CREATED).json(newCard);
   } catch (err) {
     console.error(err);
-    if (err.name === 'ValidationError') {
+    if (err.name === 'CastError' || err.name === 'ValidationError') {
       return res.status(ERROR_CODE).json({ message: 'Ошибка валидации данных карточки' });
     }
     return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
