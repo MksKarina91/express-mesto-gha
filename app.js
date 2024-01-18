@@ -7,7 +7,7 @@ const { auth } = require('./middlewares/auth');
 const { error } = require('./middlewares/error');
 const NotFoundError = require('./errors/NotFoundError');
 
-const { PORT = 3000 } = process.env;
+const PORT = 3000;
 const REGEX = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$/;
 const app = express();
 
@@ -21,9 +21,6 @@ console.log('login:', login, 'createUser:', createUser);
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
-    about: Joi.string().min(2).max(30),
-    avatar: Joi.string().regex(REGEX),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
