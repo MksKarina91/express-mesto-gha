@@ -2,10 +2,10 @@ const jwt = require('jsonwebtoken');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
-const BadRequestError = require('../errors/badRequestError');
-const NotFoundError = require('../errors/notFound');
-const ConflictError = require('../errors/conflict');
-const Created = require('../errors/errors');
+const BadRequestError = require('../errors/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
+const ConflictError = require('../errors/Conflict');
+const Created = require('../errors/Errors');
 
 module.exports.addUser = (req, res, next) => {
   const {
