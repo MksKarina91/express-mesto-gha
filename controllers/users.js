@@ -4,35 +4,30 @@ const User = require('../models/user');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
 const NotFoundError = require('../errors/NotFoundError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const OK = 200;
-const ERROR_CODE = 400;
-const NOT_FOUND = 404;
-const SERVER_ERROR = 500;
+const CREATED = 201;
 
-module.exports.getUsers = async (req, res) => {
+module.exports.getUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
-    res.status(OK).json(users);
-  } catch (err) {
-    res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
+    const users = await User.find({});
+    return res.status(OK).send(users);
+  } catch (error) {
+    return next(error);
   }
 };
 
-module.exports.getUserById = async (req, res) => {
+module.exports.getUserById = async (req, res, next) => {
   const { userId } = req.params;
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(NOT_FOUND).json({ message: 'Запрашиваемый пользователь не найден' });
+      throw new NotFoundError('Пользователь по id не найден');
     }
-    return res.status(OK).json(user);
-  } catch (err) {
-    console.error(err);
-    if (err.name === 'CastError') {
-      return res.status(ERROR_CODE).json({ message: 'Некорректный формат идентификатора пользователя' });
-    }
-    return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
+    return res.status(OK).send(user);
+  } catch (error) {
+    return next(error);
   }
 };
 
@@ -49,7 +44,7 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }).then((user) => {
-      res.status(201).send({
+      res.status(CREATED).send({
         name: user.name,
         about: user.about,
         avatar: user.avatar,
@@ -68,78 +63,67 @@ module.exports.createUser = (req, res, next) => {
     });
 };
 
-module.exports.updateUser = async (req, res) => {
+module.exports.updateUser = async (req, res, next) => {
+  const { name, about } = req.body;
+  const owner = req.user._id;
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(NOT_FOUND).json({ message: 'Запрашиваемый пользователь не найден' });
-    }
-
-    user.name = req.body.name;
-    user.about = req.body.about;
-
-    await user.validate();
-    await user.save();
-    return res.status(OK).json(user);
-  } catch (err) {
-    console.error(err);
-    if (err.name === 'ValidationError') {
-      return res.status(ERROR_CODE).json({ message: 'Ошибка валидации данных пользователя' });
-    }
-    return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
+    const user = await User.findByIdAndUpdate(
+      owner,
+      { name, about },
+      { new: true, runValidators: true },
+    )
+      .orFail(() => new NotFoundError('Пользователь по id не найден'));
+    return res.send(user);
+  } catch (error) {
+    return next(error);
   }
 };
 
-module.exports.updateAvatar = async (req, res) => {
+module.exports.updateAvatar = async (req, res, next) => {
+  const { avatar } = req.body;
+  const owner = req.user._id;
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(NOT_FOUND).json({ message: 'Запрашиваемый пользователь не найден' });
-    }
-    user.avatar = req.body.avatar;
-    await user.validate();
-    await user.save();
-    return res.status(OK).json(user);
-  } catch (err) {
-    console.error(err);
-    if (err.name === 'ValidationError') {
-      return res.status(ERROR_CODE).json({ message: 'Ошибка валидации данных пользователя' });
-    }
-    return res.status(SERVER_ERROR).json({ message: 'На сервере произошла ошибка' });
+    const user = await User.findByIdAndUpdate(
+      owner,
+      { avatar },
+      { new: true, runValidators: true },
+    )
+      .orFail(() => new NotFoundError('Пользователь по id не найден'));
+    return res.send(user);
+  } catch (error) {
+    return next(error);
   }
 };
 
 module.exports.getCurrentUser = async (req, res, next) => {
+  const { _id } = req.user;
   try {
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      throw new NotFoundError('Пользователь не найден');
-    }
-
-    res.status(OK).send(user);
-  } catch (err) {
-    if (err.name === 'CastError') {
-      next(new BadRequestError('Переданы некорректные данные'));
-    } else {
-      next(err);
-    }
+    const user = await User.findById(_id);
+    return res.status(OK).send(user);
+  } catch (error) {
+    return next(error);
   }
 };
 
-module.exports.login = (req, res, next) => {
+module.exports.login = async (req, res, next) => {
   const { email, password } = req.body;
-  return User.findUserByCredentials(email, password)
-    .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
-      res
-        .cookie('jwt', token, {
-          expires: new Date(Date.now() + 7 * 24 * 3600000),
-          httpOnly: true,
-          sameSite: true,
-        })
-        .status(OK)
-        .send({ message: 'Вы авторизованы' });
-    })
-    .catch(next);
+  try {
+    const user = await User.findOne({ email }).select('+password')
+      .orFail(() => new UnauthorizedError('Неправильные почта или пароль'));
+    const matched = await bcrypt.compare(password, user.password);
+    if (!matched) {
+      throw new UnauthorizedError('Неправильные почта или пароль');
+    }
+    const token = jwt.sign(
+      { _id: user._id },
+      'same-secret-key',
+      { expiresIn: '7d' },
+    );
+    return res
+      .status(OK)
+      .cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true })
+      .send({ data: { _id: user._id, email: user.email }, token });
+  } catch (error) {
+    return next(error);
+  }
 };

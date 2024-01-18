@@ -5,10 +5,10 @@ module.exports.error = (err, req, res, next) => {
     statusCode = 400;
   } else if (err.code === 11000) {
     statusCode = 409;
-    message = 'Такой email уже существует';
+    message = 'Такой email уже зарегистрирован';
   }
   res.status(statusCode).send({
-    message: statusCode === 500 ? 'Произошла ошибка' : message,
+    message: statusCode === 500 ? 'Внутренняя ошибка сервера' : message,
   });
   next();
 };
