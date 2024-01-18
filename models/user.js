@@ -1,61 +1,64 @@
 const mongoose = require('mongoose');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const bcrypt = require('bcrypt');
 const validator = require('validator');
-const bcrypt = require('bcryptjs');
-const UnauthorizedError = require('../errors/UnauthorizedError');
+const AuthError = require('../errors/authError');
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    minlength: 2,
-    maxlength: 30,
-    required: true,
     default: 'Жак-Ив Кусто',
+    minlength: [2, 'Минимальная длина поля "name" - 2'],
+    maxlength: [30, 'Минимальная длина поля "name" - 30'],
   },
   about: {
     type: String,
-    minlength: 2,
-    maxlength: 30,
-    required: true,
     default: 'Исследователь',
+    minlength: [2, 'Минимальная длина поля "about" - 2'],
+    maxlength: [30, 'Минимальная длина поля "about" - 30'],
   },
   avatar: {
     type: String,
-    required: true,
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
+    validate: {
+      validator(url) {
+        return /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)$/.test(url);
+      },
+      message: 'Некорректный URL',
+    },
+
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Поле "email" обязательно для заполнения'],
     unique: true,
     validate: {
       validator: (email) => validator.isEmail(email),
-      message: 'Некорректый адрес почты',
+      message: 'Некорректный email',
     },
   },
-
   password: {
     type: String,
-    required: true,
+    required: [true, 'Поле "password" обязательно для заполнения'],
     select: false,
   },
-});
+}, { versionKey: false });
 
-// eslint-disable-next-line func-names
-userSchema.statics.findUserByCredentials = function (email, password) {
-  return this.findOne({ email }).select('+password')
+userSchema.statics.findUserByCredentials = function findUserByCredentials(email, password) {
+  return this.findOne({ email })
+    .select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new UnauthorizedError('Неправильные почта или пароль'));
+        throw new AuthError('Неправильные почта или пароль');
       }
-
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new UnauthorizedError('Неправильные почта или пароль'));
+            throw new AuthError('Неправильные почта или пароль');
           }
-
-          return user; // теперь user доступен
+          return user;
         });
     });
 };
-module.exports = mongoose.model('User', userSchema);
+
+module.exports = mongoose.model('user', userSchema);
