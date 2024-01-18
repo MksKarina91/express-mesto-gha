@@ -30,18 +30,9 @@ app.use('*', (req, res, next) => {
 });
 
 app.use(errors());
+const errorHandler = require('./middlewares/error-handler');
 
-app.use((err, req, res, next) => {
-  const { statusCode = 500, message } = err;
-  res
-    .status(statusCode)
-    .send({
-      message: statusCode === 500
-        ? 'На сервере произошла ошибка'
-        : message,
-    });
-  next();
-});
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
